@@ -84,6 +84,17 @@ class InstructionIntegrator(BaseIntegrator):
         metadata = post.metadata if isinstance(post.metadata, dict) else {}
         return metadata, post.content
 
+    @staticmethod
+    def _strip_frontmatter(content: str) -> str:
+        """Strip YAML frontmatter from instruction content.
+
+        Returns only the body text following the closing ``---`` delimiter.
+        If no frontmatter is present, returns the content unchanged.
+        Handles both LF and CRLF line endings.
+        """
+        _, body = InstructionIntegrator._parse_frontmatter(content)
+        return body
+
     def find_instruction_files(self, package_path: Path, source_plan=None) -> list[Path]:
         """Find all .instructions.md files in a package.
 
