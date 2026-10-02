@@ -268,6 +268,40 @@ class TestCopilotInstallUninstallCycle:
         for p in deployed:
             assert not (self.project_root / p).exists()
 
+    def test_user_scope_legacy_glob_preserves_unmanaged_instruction_file(self):
+        """Cleanup under .copilot/instructions/ must not sweep up user-authored files.
+
+        Unlike project scope (.github/instructions/, always APM-managed),
+        .copilot/instructions/ at user scope is a directory other tools may
+        also write .instructions.md files into. The sync cleanup must only
+        remove files it actually deployed, never run a broad legacy glob
+        there.
+        """
+        target = KNOWN_TARGETS["copilot"].for_scope(user_scope=True)
+        assert target is not None
+
+        pkg_info = _make_pkg(self.project_root, instructions=True, agents=False, prompts=False)
+        inst_integrator = InstructionIntegrator()
+        inst_result = inst_integrator.integrate_instructions_for_target(
+            target, pkg_info, self.project_root
+        )
+        assert inst_result.files_integrated == 1
+        deployed = _posix_relpaths(self.project_root, inst_result.target_paths)
+
+        unmanaged = (
+            self.project_root / ".copilot" / "instructions" / "user-authored.instructions.md"
+        )
+        unmanaged.parent.mkdir(parents=True, exist_ok=True)
+        unmanaged.write_text("hand-authored, not APM-managed\n", encoding="utf-8")
+
+        inst_sync = inst_integrator.sync_for_target(
+            target, pkg_info.package, self.project_root, managed_files=deployed
+        )
+        assert inst_sync["errors"] == 0
+        for p in deployed:
+            assert not (self.project_root / p).exists()
+        assert unmanaged.exists(), "legacy glob deleted a user-authored instruction file"
+
 
 # ---------------------------------------------------------------------------
 # Claude

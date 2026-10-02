@@ -560,6 +560,10 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         },
         auto_create=True,
         detect_by_dir=True,
+        # "partial": instructions deploy modularly under
+        # ~/.copilot/instructions/ (restored above), but prompts/agents/
+        # skills/hooks/canvas have no documented Copilot CLI user-scope
+        # surface yet, so the target is not "True" (fully) supported.
         user_supported="partial",
         user_root_dir=".copilot",
         generated_files=("copilot-instructions.md",),
